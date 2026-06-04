@@ -1,0 +1,272 @@
+@import url('https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@700;800;900&display=swap');
+
+/* ── RESET ── */
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;touch-action:manipulation;}
+html,body{width:100%;height:100%;overflow:hidden;background:#1a1a2e;font-family:"Nunito",sans-serif;font-weight:700;}
+canvas{display:block;}
+button{touch-action:manipulation;}
+
+/* ── ROOT APP ── */
+#app{
+  display:flex;flex-direction:column;
+  width:100%;height:100%;
+  overflow:hidden;
+  --arena-h:50vh; /* overridden by JS via setLayout() */
+}
+
+/* ── CANVAS ARENA (top half) ── */
+#canvas-wrap{
+  flex:0 0 var(--arena-h);
+  height:var(--arena-h);
+  position:relative;
+  background:#5ecef7;
+  overflow:hidden;
+}
+#gameCanvas{display:block;width:100%;height:100%;}
+
+/* ── MANAGEMENT PANEL (bottom half) ── */
+#mgmt-panel{
+  flex:1 1 0;
+  min-height:0;
+  background:#c47a3a;
+  display:flex;
+  flex-direction:column;
+  overflow:hidden;
+}
+#mgmt-inner{
+  display:flex;flex-direction:column;
+  height:100%;
+  overflow:hidden;
+}
+
+/* ── TOP HUD ── */
+#top-hud{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:4px 10px;
+  background:rgba(0,0,0,0.22);
+  flex-shrink:0;
+  min-height:36px;
+}
+.curr-chip{display:flex;align-items:center;gap:4px;background:rgba(0,0,0,.35);border-radius:16px;padding:3px 8px;}
+.curr-val{color:#fff;font-weight:900;font-size:13px;font-family:"Fredoka One",cursive;}
+#wave-txt{font-family:"Fredoka One",cursive;font-size:14px;color:#fff;text-shadow:0 2px 0 rgba(0,0,0,.3);}
+
+/* ── STAT BAR ── */
+#stat-bar{
+  display:flex;align-items:center;justify-content:space-around;
+  padding:3px 6px 2px;
+  background:rgba(0,0,0,.15);
+  flex-shrink:0;
+  gap:2px;
+  flex-wrap:nowrap;
+}
+.stat-item{display:flex;flex-direction:column;align-items:center;gap:0px;}
+.stat-icon{font-size:11px;line-height:1.1;}
+.stat-val{font-size:9px;font-weight:900;color:#fff;font-family:"Fredoka One",cursive;white-space:nowrap;}
+.stat-crit-label{font-size:5px;color:rgba(255,255,255,.7);text-transform:uppercase;letter-spacing:.5px;font-weight:900;}
+#stat-atk{color:#ffee55;}
+#hp-bar-outer{width:50px;height:6px;background:rgba(0,0,0,.4);border-radius:10px;overflow:hidden;}
+#hp-bar{height:100%;border-radius:10px;transition:width .2s;}
+
+/* ── WEAPON GRID ── */
+#grid-wrap{
+  flex:0 0 auto;
+  padding:4px 6px 3px;
+  background:rgba(200,230,255,0.12);
+}
+#grid-panel{
+  background:rgba(255,255,255,0.55);
+  border-radius:12px;
+  padding:5px;
+  box-shadow:0 2px 6px rgba(0,0,0,0.18);
+}
+#grid-container{
+  display:grid;
+  gap:2px;
+  grid-template-columns:repeat(9,1fr); /* overridden by renderGrid() */
+}
+/* Square cells via padding trick (safe on iOS Safari) */
+.gc{
+  background:rgba(200,230,255,0.6);
+  border:1px solid rgba(255,255,255,0.75);
+  border-radius:5px;
+  position:relative;
+  cursor:pointer;
+  width:100%;
+  padding-bottom:100%;
+  height:0;
+  transition:border-color .1s;
+}
+.gc.occupied{background:rgba(210,240,255,0.7);border-color:rgba(160,210,255,.9);}
+.gc.dov{background:rgba(255,240,160,.9);border-color:#ffb300;}
+
+/* Weapon chip — fills the padded square absolutely */
+.ichip{
+  position:absolute;inset:0;
+  border-radius:4px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:6px;color:#fff;font-weight:900;
+  cursor:grab;user-select:none;z-index:2;
+  flex-direction:column;gap:0;padding:1px;
+  text-shadow:0 1px 2px rgba(0,0,0,.5);
+  overflow:hidden;
+}
+
+/* ── BENCH (2 rows × 5 cols) ── */
+#bench-wrap{flex:0 0 auto;padding:2px 6px;}
+#bench-container{
+  display:grid;
+  grid-template-columns:repeat(5,1fr);
+  gap:2px;
+}
+.bslot{
+  width:100%;
+  padding-bottom:100%;height:0;
+  position:relative;
+  background:rgba(255,255,255,0.6);
+  border:1px solid rgba(255,255,255,0.8);
+  border-radius:7px;
+  cursor:pointer;
+}
+.bslot-inner{
+  position:absolute;inset:0;
+  display:flex;align-items:center;justify-content:center;
+  flex-direction:column;
+  font-size:7px;color:rgba(100,140,180,.7);font-weight:800;
+  gap:0;overflow:hidden;
+}
+
+/* ── SHOP / SELL AREA ── */
+#shop-area{
+  flex:0 0 auto;
+  padding:3px 6px 2px;
+  background:rgba(0,0,0,.12);
+  display:flex;flex-direction:column;gap:2px;
+}
+#sell-zone{
+  display:none; /* shown during drag via JS */
+  background:rgba(60,60,60,.75);
+  border:2px dashed rgba(255,255,255,.4);
+  border-radius:10px;
+  padding:6px 12px;
+  align-items:center;gap:8px;cursor:pointer;
+}
+.trash-icon{font-size:18px;}
+.sell-info{font-family:"Fredoka One",cursive;color:#fff;}
+.money-icon{color:#88ff44;}
+#shop-row{display:flex;align-items:center;gap:6px;}
+#shop-items{display:flex;gap:5px;flex:1;}
+.shop-item-wrap{display:flex;flex-direction:column;align-items:center;gap:1px;flex:1;}
+.shop-item{
+  width:100%;aspect-ratio:1;
+  background:rgba(255,255,255,.75);
+  border:2px solid rgba(255,255,255,.9);
+  border-radius:10px;
+  display:flex;align-items:center;justify-content:center;
+  cursor:pointer;transition:all .12s;
+  box-shadow:0 2px 4px rgba(0,0,0,.12);
+  max-width:52px;
+}
+.shop-item:active{transform:scale(.95);}
+.shop-item.cant-afford{opacity:.4;cursor:not-allowed;}
+.shop-icon{font-size:20px;line-height:1;}
+.shop-cost{font-size:9px;color:#fff;font-weight:900;display:flex;align-items:center;gap:1px;font-family:"Fredoka One",cursive;}
+#reroll-btn{
+  background:#9b59e8;border:none;color:#fff;
+  font-family:"Fredoka One",cursive;font-size:9px;
+  padding:5px 8px;border-radius:10px;cursor:pointer;
+  box-shadow:0 3px 0 #7a3ec8;white-space:nowrap;line-height:1.3;
+  flex-shrink:0;
+}
+#reroll-btn:active{transform:translateY(2px);box-shadow:none;}
+
+/* ── PLAY / PAUSE BUTTON ── */
+#play-btn-wrap{
+  flex:0 0 auto;
+  padding:3px 8px 5px;
+  display:flex;justify-content:center;gap:8px;
+}
+#play-btn{
+  background:#5de038;border:none;border-radius:28px;
+  color:#1a5500;font-family:"Fredoka One",cursive;
+  font-size:16px;padding:8px 0;cursor:pointer;
+  box-shadow:0 4px 0 #3db818;
+  display:flex;align-items:center;justify-content:center;
+  gap:8px;width:100%;letter-spacing:1px;
+  transition:transform .1s,box-shadow .1s;
+  -webkit-tap-highlight-color:transparent;
+}
+#play-btn:active{transform:translateY(3px);box-shadow:0 1px 0 #3db818;}
+#pause-btn{
+  background:#ff9500;border:none;border-radius:28px;color:#fff;
+  font-family:"Fredoka One",cursive;font-size:16px;padding:8px 0;
+  cursor:pointer;box-shadow:0 4px 0 #cc7000;
+  display:none; /* shown during combat */
+  align-items:center;justify-content:center;
+  width:100%;letter-spacing:1px;
+  transition:transform .1s,box-shadow .1s;
+}
+#pause-btn:active{transform:translateY(3px);box-shadow:0 1px 0 #cc7000;}
+
+/* ── OVERLAYS ── */
+#game-overlay{
+  position:absolute;inset:0;
+  display:none; /* flex when active */
+  align-items:center;justify-content:center;
+  flex-direction:column;gap:12px;
+  background:rgba(10,60,100,.9);
+  z-index:200;backdrop-filter:blur(7px);
+  padding:16px;overflow-y:auto;
+}
+.otitle{
+  font-family:"Fredoka One",cursive;
+  font-size:clamp(26px,8vw,42px);
+  color:#fff;letter-spacing:2px;
+  text-shadow:0 4px 0 rgba(0,0,0,.3);
+  text-align:center;line-height:1.1;
+}
+.how-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;width:100%;max-width:360px;}
+.how-item{
+  background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);
+  border-radius:10px;padding:7px 9px;
+  font-size:clamp(8px,2.5vw,10px);
+  color:rgba(255,255,255,.8);line-height:1.6;font-weight:700;
+}
+.how-item b{color:#fff;display:block;margin-bottom:2px;font-size:clamp(9px,2.8vw,11px);}
+.start-btn-wrap{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;}
+.obtn{
+  border:none;color:#fff;padding:11px 24px;
+  font-family:"Fredoka One",cursive;font-size:14px;
+  border-radius:28px;cursor:pointer;
+}
+.obtn:active{transform:translateY(2px);}
+.pbtn{background:#5de038;color:#1a5500;box-shadow:0 4px 0 #3db818;}
+.cbtn{background:#9b59e8;box-shadow:0 4px 0 #7a3ec8;}
+
+/* ── WAVE MESSAGE ── */
+#wave-msg{
+  position:absolute;top:40%;left:50%;transform:translate(-50%,-50%);
+  font-family:"Fredoka One",cursive;font-size:clamp(16px,5vw,22px);
+  color:#fff;letter-spacing:2px;pointer-events:none;
+  opacity:0;transition:opacity .5s;
+  text-align:center;text-shadow:0 3px 0 rgba(0,0,0,.3);
+  z-index:50;white-space:nowrap;
+}
+
+/* ── UTILITY ── */
+#mute-btn{
+  position:absolute;top:6px;right:8px;
+  background:rgba(0,0,0,.28);border:none;color:#fff;
+  font-size:12px;padding:4px 8px;cursor:pointer;
+  border-radius:14px;z-index:300;min-width:36px;min-height:30px;
+}
+#save-ind{
+  position:absolute;bottom:4px;right:8px;
+  font-size:8px;color:rgba(255,255,255,.5);
+  opacity:0;transition:opacity .5s;font-weight:700;
+}
+
+/* ── SAFE AREA (notch / home bar) ── */
+@supports(padding:max(0px)){
+  #app{padding-bottom:env(safe-area-inset-bottom,0px);}
+}
